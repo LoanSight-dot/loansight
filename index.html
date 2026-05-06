@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LoanSight — ML Risk Assessment</title>
+
+<!-- PWA: basic metadata -->
+<meta name="application-name" content="LoanSight">
+<meta name="description" content="ML-powered loan risk assessment tool for mortgage and personal loans.">
+<meta name="theme-color" content="#0b0e14">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- PWA: iOS specific -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LoanSight">
+
+<!-- PWA: iOS splash screens (covers common iPhone sizes) -->
+<link rel="apple-touch-startup-image" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+
+<!-- PWA: App icon (inline SVG encoded as PNG data URI fallback + inline canvas-generated icon) -->
+<link rel="apple-touch-icon" id="apple-touch-icon-link">
+<link rel="icon" id="favicon-link">
+
+<!-- PWA: Web App Manifest (inline as data URI so file stays self-contained) -->
+<link rel="manifest" id="pwa-manifest">
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0b0e14;--surface:#12161f;--surface2:#1a1f2e;--surface3:#222840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#4f8ef7;--accent2:#7c5cfc;--green:#22d3a0;--amber:#f5a623;--red:#f7605c;
+  --text:#e8ecf4;--text2:#8b93a8;--text3:#4e566a;
+  --mono:'DM Mono',monospace;--serif:'DM Serif Display',serif;--sans:'Outfit',sans-serif;
+  --radius:12px;--radius-sm:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:0 24px 60px}
+header{display:flex;align-items:center;justify-content:space-between;padding:28px 0 36px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:20px;height:20px}
+.logo-text{font-family:var(--serif);font-size:22px;color:var(--text);letter-spacing:-0.3px}
+.logo-sub{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:-2px}
+.header-tag{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);padding:5px 12px;border-radius:20px}
+.main-grid{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start}
+
+/* Panel */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.panel-header{padding:16px 20px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.panel-header-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.panel-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text2)}
+.panel-body{padding:18px 20px}
+.form-section{margin-bottom:20px}
+.form-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:14px}
+.field-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.field-name{font-size:13px;color:var(--text2)}
+.field-value{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);background:rgba(79,142,247,0.08);padding:2px 8px;border-radius:4px}
+
+/* Name input */
+.name-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none;transition:border-color .2s}
+.name-input::placeholder{color:var(--text3)}
+.name-input:focus{border-color:var(--accent)}
+
+/* Sliders */
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;background:var(--surface3);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);cursor:pointer;transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+
+/* Loan toggle */
+.toggle-group{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.toggle-btn{padding:7px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--sans);font-size:12px;cursor:pointer;text-align:center;transition:all .15s}
+.toggle-btn.active{background:rgba(79,142,247,0.12);border-color:var(--accent);color:var(--accent);font-weight:500}
+.toggle-btn:hover:not(.active){border-color:var(--border2);color:var(--text)}
+
+/* Button row */
+.btn-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:4px}
+.analyze-btn{padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;transition:opacity .2s,transform .15s}
+.analyze-btn:hover{opacity:.88}
+.analyze-btn:active{transform:scale(.97)}
+.save-btn{padding:12px 16px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--sans);font-size:13px;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:7px}
+.save-btn:hover{border-color:var(--green);color:var(--green)}
+.save-btn:active{transform:scale(.97)}
+.save-btn svg{width:14px;height:14px;flex-shrink:0}
+
+/* Results */
+.results-panel{display:flex;flex-direction:column;gap:14px}
+.score-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;align-items:center;gap:22px}
+.score-ring-wrap{flex-shrink:0}
+.score-details{flex:1}
+.score-name{font-family:var(--serif);font-size:15px;color:var(--text2);margin-bottom:2px;font-style:italic}
+.score-big{font-family:var(--serif);font-size:50px;line-height:1;margin-bottom:5px}
+.score-label{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:9px}
+.risk-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 13px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.risk-low{background:rgba(34,211,160,0.12);color:var(--green);border:1px solid rgba(34,211,160,0.25)}
+.risk-med{background:rgba(245,166,35,0.12);color:var(--amber);border:1px solid rgba(245,166,35,0.25)}
+.risk-high{background:rgba(247,96,92,0.12);color:var(--red);border:1px solid rgba(247,96,92,0.25)}
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 15px}
+.metric-card-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px}
+.metric-card-value{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--text)}
+.metric-card-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.factors-card,.rec-card,.model-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.factors-title,.model-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:14px}
+.factor-item{margin-bottom:12px}
+.factor-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.factor-name{font-size:13px;color:var(--text2)}
+.factor-val{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:500}
+.bar-track{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.rec-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.rec-verdict{font-family:var(--serif);font-size:19px;color:var(--text);line-height:1.2}
+.rec-body{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px}
+.rec-tags{display:flex;flex-wrap:wrap;gap:6px}
+.rec-tag{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text3)}
+.rec-tag.bad{background:rgba(247,96,92,0.08);border-color:rgba(247,96,92,0.2);color:#f7605c}
+.rec-tag.ok{background:rgba(245,166,35,0.08);border-color:rgba(245,166,35,0.2);color:#f5a623}
+.rec-tag.good{background:rgba(34,211,160,0.08);border-color:rgba(34,211,160,0.2);color:#22d3a0}
+.weight-item{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.weight-name{font-size:12px;color:var(--text2);width:155px;flex-shrink:0}
+.weight-bar-track{flex:1;height:3px;background:var(--surface3);border-radius:2px}
+.weight-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.weight-pct{font-family:var(--mono);font-size:11px;color:var(--text3);width:30px;text-align:right}
+
+/* Saved Records */
+.saved-section{margin-top:32px}
+.saved-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.saved-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text3)}
+.saved-count{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:2px 9px;border-radius:10px}
+.saved-empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--text3);font-size:13px}
+.saved-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.saved-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.saved-card:hover{border-color:var(--border2);background:var(--surface2)}
+.saved-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.saved-card-name{font-family:var(--serif);font-size:16px;color:var(--text);line-height:1.2}
+.saved-card-date{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px}
+.saved-card-score{display:flex;align-items:baseline;gap:4px}
+.saved-card-score-num{font-family:var(--mono);font-size:26px;font-weight:500}
+.saved-card-score-denom{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.saved-card-meta{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.saved-card-loan{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.saved-delete{background:transparent;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;transition:color .15s;line-height:0}
+.saved-delete:hover{color:var(--red)}
+.saved-delete svg{width:14px;height:14px}
+.load-btn{font-size:11px;color:var(--accent);background:transparent;border:1px solid rgba(79,142,247,0.25);border-radius:4px;padding:3px 9px;cursor:pointer;font-family:var(--mono);transition:all .15s}
+.load-btn:hover{background:rgba(79,142,247,0.1)}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 18px;font-size:13px;color:var(--text);z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .32s ease forwards}
+footer{border-top:1px solid var(--border);margin-top:48px;padding-top:18px;display:flex;justify-content:space-between;align-items:center}
+.footer-text{font-size:11px;color:var(--text3);font-family:var(--mono)}
+
+/* iOS safe area support */
+body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.app{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+
+/* Mobile layout */
+@media(max-width:800px){
+  .main-grid{grid-template-columns:1fr}
+  .metrics-row{grid-template-columns:repeat(2,1fr)}
+  .saved-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  header{flex-direction:column;align-items:flex-start;gap:10px;padding:20px 0 24px}
+  .btn-row{grid-template-columns:1fr auto}
+}
+@media(max-width:480px){
+  .metrics-row{grid-template-columns:repeat(2,1fr)}
+  .toggle-group{grid-template-columns:repeat(2,1fr)}
+  .score-card{flex-direction:column;align-items:flex-start;gap:14px}
+  .score-big{font-size:40px}
+  footer{flex-direction:column;gap:6px;align-items:flex-start}
+}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:52px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.empty-icon{margin-bottom:16px;opacity:0.6}
+.empty-title{font-family:var(--serif);font-size:20px;color:var(--text2);margin-bottom:8px}
+.empty-sub{font-size:13px;color:var(--text3);line-height:1.7;max-width:280px}
+.empty-sub strong{color:var(--text2)}
+
+/* PWA install banner */
+#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border2);padding:14px 20px max(14px,env(safe-area-inset-bottom));z-index:100;align-items:center;gap:12px}
+#pwa-banner.visible{display:flex}
+#pwa-banner-icon{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#pwa-banner-icon svg{width:22px;height:22px}
+#pwa-banner-text{flex:1}
+#pwa-banner-title{font-size:14px;font-weight:500;color:var(--text)}
+#pwa-banner-sub{font-size:12px;color:var(--text3);margin-top:1px}
+#pwa-banner-add{background:var(--accent);border:none;border-radius:var(--radius-sm);color:#fff;font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 14px;cursor:pointer;white-space:nowrap}
+#pwa-banner-close{background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 14l4-5 3 3 4-6 3 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="10" cy="5" r="1.5" fill="white" opacity="0.5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">LoanSight</div>
+        <div class="logo-sub">ML Risk Assessment</div>
+      </div>
+    </div>
+    <div class="header-tag">v1.0 · Thesis Demo</div>
+  </header>
+
+  <div class="main-grid">
+    <!-- LEFT: Input Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-header-dot"></div>
+        <div class="panel-title">Applicant Parameters</div>
+      </div>
+      <div class="panel-body">
+
+        <div class="form-section">
+          <div class="form-section-label">Applicant Name</div>
+          <div class="field">
+            <input type="text" class="name-input" id="applicant-name" placeholder="e.g. Euxhen Dollija" maxlength="60" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-label">Loan Details</div>
+          <div class="field">
+            <div class="field-label"><span class="field-name">Loan type</span></div>
+            <div class="toggle-group" id="loan-toggle">
+              <button class="toggle-btn active" data-loan="mortgage">Mortgage</button>
+              <button class="toggle-btn" data-loan="personal">Personal</button>
+              <button class="toggle-btn" data-loan="auto">Auto</button>
+              <button class="toggle-btn" data-loan="business">Business</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Loan amount</span>
+              <span class="field-value" id="amount-out">€150,000</span>
+            </div>
+            <input type="range" id="amount" min="5000" max="500000" step="5000" value="150000">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-label">Personal Information</div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Age</span>
+              <span class="field-value" id="age-out">35</span>
+            </div>
+            <input type="range" id="age" min="18" max="75" step="1" value="35">
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Annual income</span>
+              <span class="field-value" id="income-out">€55,000</span>
+            </div>
+            <input type="range" id="income" min="10000" max="200000" step="1000" value="55000">
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Savings &amp; assets</span>
+              <span class="field-value" id="savings-out">€20,000</span>
+            </div>
+            <input type="range" id="savings" min="0" max="200000" step="1000" value="20000">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-label">Credit Profile</div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Credit score</span>
+              <span class="field-value" id="credit-out">680</span>
+            </div>
+            <input type="range" id="credit" min="300" max="850" step="1" value="680">
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Debt-to-income ratio</span>
+              <span class="field-value" id="dti-out">30%</span>
+            </div>
+            <input type="range" id="dti" min="0" max="80" step="1" value="30">
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Employment duration</span>
+              <span class="field-value" id="emp-out">4 yrs</span>
+            </div>
+            <input type="range" id="emp" min="0" max="35" step="1" value="4">
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-name">Previous defaults</span>
+              <span class="field-value" id="defaults-out">0</span>
+            </div>
+            <input type="range" id="defaults" min="0" max="5" step="1" value="0">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="analyze-btn" id="analyze-btn">Run Risk Analysis</button>
+          <button class="save-btn" id="reset-btn" title="Reset results">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 7a5 5 0 1 0 1.5-3.5L2 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 2v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Reset
+          </button>
+          <button class="save-btn" id="save-btn" title="Save this result">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2h8l2 2v8a1 1 0 01-1 1H3a1 1 0 01-1-1V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+              <rect x="4" y="7" width="6" height="5" rx=".5" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M4 2h5v3H4V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            </svg>
+            Save
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="results-panel" id="results"></div>
+  </div>
+
+  <!-- Saved Records Section -->
+  <div class="saved-section">
+    <div class="saved-header">
+      <div class="saved-title">Saved applicants</div>
+      <div class="saved-count" id="saved-count">0 records</div>
+    </div>
+    <div id="saved-list"></div>
+  </div>
+
+  <footer>
+    <div class="footer-text">LoanSight · ML Loan Risk Assessment · Thesis Demo</div>
+    <div class="footer-text">Weighted logistic scoring model · 7 features</div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  var loanType = 'mortgage';
+  var lastResult = null;
+  var STORAGE_KEY = 'loansight_records';
+
+  // ---- Slider bindings ----
+  var sliders = [
+    { id: 'amount',   outId: 'amount-out',  fmt: function(v){ return '\u20AC' + Number(v).toLocaleString(); } },
+    { id: 'age',      outId: 'age-out',     fmt: function(v){ return v; } },
+    { id: 'income',   outId: 'income-out',  fmt: function(v){ return '\u20AC' + Number(v).toLocaleString(); } },
+    { id: 'savings',  outId: 'savings-out', fmt: function(v){ return '\u20AC' + Number(v).toLocaleString(); } },
+    { id: 'credit',   outId: 'credit-out',  fmt: function(v){ return v; } },
+    { id: 'dti',      outId: 'dti-out',     fmt: function(v){ return v + '%'; } },
+    { id: 'emp',      outId: 'emp-out',     fmt: function(v){ return v + ' yr' + (v == 1 ? '' : 's'); } },
+    { id: 'defaults', outId: 'defaults-out',fmt: function(v){ return v; } }
+  ];
+  sliders.forEach(function(s) {
+    var el = document.getElementById(s.id);
+    var out = document.getElementById(s.outId);
+    el.addEventListener('input', function() { out.textContent = s.fmt(el.value); });
+  });
+
+  // ---- Loan toggle ----
+  document.getElementById('loan-toggle').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-loan]');
+    if (!btn) return;
+    loanType = btn.getAttribute('data-loan');
+    document.querySelectorAll('#loan-toggle .toggle-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+  });
+
+  // ---- Helpers ----
+  function getVal(id) { return +document.getElementById(id).value; }
+  function barColor(pct) {
+    if (pct >= 65) return '#22d3a0';
+    if (pct >= 40) return '#f5a623';
+    return '#f7605c';
+  }
+  function scoreColor(score) {
+    if (score < 35) return '#22d3a0';
+    if (score < 62) return '#f5a623';
+    return '#f7605c';
+  }
+
+  // ---- Compute ----
+  function compute() {
+    var credit   = getVal('credit');
+    var dti      = getVal('dti');
+    var emp      = getVal('emp');
+    var savings  = getVal('savings');
+    var defaults = getVal('defaults');
+    var income   = getVal('income');
+    var amount   = getVal('amount');
+    var age      = getVal('age');
+    var name     = document.getElementById('applicant-name').value.trim();
+
+    var creditNorm  = (850 - credit) / 550;
+    var dtiNorm     = Math.min(dti / 80, 1);
+    var empNorm     = Math.max(0, 1 - emp / 15);
+    var lti         = amount / Math.max(income, 1);
+    var ltiNorm     = Math.min(lti / 10, 1);
+    var savingsNorm = Math.max(0, 1 - savings / 100000);
+
+    var score = 0;
+    score += creditNorm * 28;
+    score += dtiNorm * 22;
+    score += empNorm * 12;
+    score += ltiNorm * 14;
+    score += savingsNorm * 10;
+    score += Math.min(defaults * 8, 20);
+    score += (age < 25 || age > 65) ? 4 : 0;
+    score += loanType === 'business' ? 3 : loanType === 'mortgage' ? -2 : 0;
+    score = Math.max(0, Math.min(100, Math.round(score)));
+
+    var factors = [
+      { name: 'Credit score',         display: credit + ' / 850',                    pct: Math.min(Math.round(((credit-300)/550)*100),100) },
+      { name: 'Debt-to-income ratio', display: dti + '%',                             pct: Math.min(Math.round((1-dtiNorm)*100),100) },
+      { name: 'Loan-to-income ratio', display: lti.toFixed(1) + 'x',                pct: Math.min(Math.round((1-ltiNorm)*100),100) },
+      { name: 'Employment duration',  display: emp + ' yr' + (emp===1?'':'s'),        pct: Math.min(Math.round((emp/15)*100),100) },
+      { name: 'Savings buffer',       display: '\u20AC' + savings.toLocaleString(),   pct: Math.min(Math.round((savings/100000)*100),100) },
+      { name: 'Previous defaults',    display: defaults===0?'None':String(defaults),  pct: Math.max(0,100-defaults*25) }
+    ];
+
+    var level, pill;
+    if (score < 35)      { level = 'Low Risk';    pill = 'risk-low'; }
+    else if (score < 62) { level = 'Medium Risk'; pill = 'risk-med'; }
+    else                 { level = 'High Risk';   pill = 'risk-high'; }
+
+    var issues=[], goods=[], oks=[];
+    if (credit < 620)         issues.push('credit: '+credit);
+    else if (credit >= 720)   goods.push('credit: '+credit);
+    else                      oks.push('credit: '+credit);
+    if (dti > 40)             issues.push('DTI: '+dti+'%');
+    else if (dti <= 28)       goods.push('DTI: '+dti+'%');
+    else                      oks.push('DTI: '+dti+'%');
+    if (defaults > 0)         issues.push(defaults+' default'+(defaults>1?'s':''));
+    else                      goods.push('no defaults');
+    if (lti > 6)              issues.push('LTI: '+lti.toFixed(1)+'x');
+    else if (lti < 3)         goods.push('LTI: '+lti.toFixed(1)+'x');
+    else                      oks.push('LTI: '+lti.toFixed(1)+'x');
+    if (savings < 5000)       issues.push('low savings');
+    else if (savings > 40000) goods.push('strong savings');
+    if (emp < 2)              issues.push('short employment');
+    else if (emp >= 5)        goods.push('stable employment');
+
+    var verdict, recBody;
+    if (score < 35) {
+      verdict = 'Recommended for approval';
+      recBody = 'This applicant presents a strong financial profile with a risk score of '+score+'/100. '+(issues.length===0?'No significant risk flags detected — standard loan terms are appropriate.':'Minor concerns noted ('+issues.join(', ')+') but overall risk remains well within acceptable thresholds.')+' Proceed with standard underwriting at competitive rates.';
+    } else if (score < 62) {
+      verdict = 'Conditional approval recommended';
+      recBody = 'Moderate risk profile detected (score '+score+'/100). '+(issues.length>0?'Key concerns: '+issues.join(', ')+'. ':'')+' Consider requiring a larger down payment (20%+), a co-borrower or guarantor, a shorter loan term to reduce total exposure, or a slightly higher interest rate to offset risk.';
+    } else {
+      verdict = 'Not recommended at current terms';
+      recBody = 'High risk profile detected (score '+score+'/100). Significant risk indicators: '+issues.join(', ')+'. Approval at current terms carries substantial default risk. The bank should decline or require major collateral, a guarantor, and substantially improved credit standing.';
+    }
+
+    return { name, score, level, pill, factors, credit, dti, emp, savings, defaults, income, amount, lti, loanType, issues, oks, goods, verdict, recBody, age };
+  }
+
+  // ---- Render results ----
+  function renderResults(r) {
+    var col = scoreColor(r.score);
+    var circ = 2 * Math.PI * 44;
+    var filled = circ * (r.score / 100);
+
+    var tagsHTML =
+      r.issues.map(function(t){ return '<span class="rec-tag bad">'+t+'</span>'; }).join('') +
+      r.oks.map(function(t){ return '<span class="rec-tag ok">'+t+'</span>'; }).join('') +
+      r.goods.map(function(t){ return '<span class="rec-tag good">'+t+'</span>'; }).join('');
+
+    var factorsHTML = r.factors.map(function(f) {
+      return '<div class="factor-item">'+
+        '<div class="factor-row"><span class="factor-name">'+f.name+'</span><span class="factor-val">'+f.display+'</span></div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+f.pct+'%;background:'+barColor(f.pct)+'"></div></div>'+
+      '</div>';
+    }).join('');
+
+    var weights = [
+      {name:'Credit score',w:28},{name:'Debt-to-income ratio',w:22},{name:'Loan-to-income ratio',w:14},
+      {name:'Employment duration',w:12},{name:'Savings buffer',w:10},{name:'Previous defaults',w:8},{name:'Age & loan type',w:6}
+    ];
+    var weightsHTML = weights.map(function(w){
+      return '<div class="weight-item"><span class="weight-name">'+w.name+'</span><div class="weight-bar-track"><div class="weight-bar-fill" style="width:'+(w.w*3.33)+'%"></div></div><span class="weight-pct">'+w.w+'%</span></div>';
+    }).join('');
+
+    var nameDisplay = r.name ? '<div class="score-name">'+escHtml(r.name)+'</div>' : '';
+
+    document.getElementById('results').innerHTML =
+      '<div class="score-card fade-in">'+
+        '<div class="score-ring-wrap">'+
+          '<svg width="100" height="100" viewBox="0 0 100 100">'+
+            '<circle cx="50" cy="50" r="44" fill="none" stroke="#1a1f2e" stroke-width="8"/>'+
+            '<circle cx="50" cy="50" r="44" fill="none" stroke="'+col+'" stroke-width="8"'+
+              ' stroke-dasharray="'+filled.toFixed(1)+' '+circ.toFixed(1)+'"'+
+              ' stroke-dashoffset="'+(circ*0.25).toFixed(1)+'"'+
+              ' stroke-linecap="round" transform="rotate(-90 50 50)"/>'+
+          '</svg>'+
+        '</div>'+
+        '<div class="score-details">'+
+          nameDisplay+
+          '<div class="score-big" style="color:'+col+'">'+r.score+'</div>'+
+          '<div class="score-label">risk score / 100 — higher means riskier</div>'+
+          '<span class="risk-pill '+r.pill+'">'+r.level+'</span>'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="metrics-row fade-in">'+
+        '<div class="metric-card"><div class="metric-card-label">Credit score</div><div class="metric-card-value">'+r.credit+'</div><div class="metric-card-sub">'+(r.credit>=720?'Good':r.credit>=650?'Fair':'Poor')+'</div></div>'+
+        '<div class="metric-card"><div class="metric-card-label">DTI ratio</div><div class="metric-card-value">'+r.dti+'%</div><div class="metric-card-sub">'+(r.dti<=28?'Healthy':r.dti<=43?'Moderate':'High')+'</div></div>'+
+        '<div class="metric-card"><div class="metric-card-label">Loan / income</div><div class="metric-card-value">'+r.lti.toFixed(1)+'x</div><div class="metric-card-sub">'+(r.lti<3?'Low':r.lti<6?'Moderate':'High')+'</div></div>'+
+        '<div class="metric-card"><div class="metric-card-label">Defaults</div><div class="metric-card-value">'+r.defaults+'</div><div class="metric-card-sub">'+(r.defaults===0?'Clean record':'Risk flag')+'</div></div>'+
+      '</div>'+
+
+      '<div class="factors-card fade-in">'+
+        '<div class="factors-title">Key risk factors — feature scores</div>'+
+        factorsHTML+
+      '</div>'+
+
+      '<div class="rec-card fade-in">'+
+        '<div class="rec-header"><div class="rec-verdict">'+r.verdict+'</div><span class="risk-pill '+r.pill+'" style="font-size:11px">'+r.level+'</span></div>'+
+        '<div class="rec-body">'+r.recBody+'</div>'+
+        '<div class="rec-tags">'+tagsHTML+'</div>'+
+      '</div>'+
+
+      '<div class="model-card fade-in">'+
+        '<div class="model-title">Model feature weights — weighted logistic scoring</div>'+
+        weightsHTML+
+      '</div>';
+  }
+
+  // ---- Storage ----
+  function loadRecords() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch(e) { return []; }
+  }
+  function saveRecords(recs) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(recs)); } catch(e) {}
+  }
+
+  // ---- Render saved list ----
+  function renderSaved() {
+    var recs = loadRecords();
+    var countEl = document.getElementById('saved-count');
+    countEl.textContent = recs.length + (recs.length === 1 ? ' record' : ' records');
+
+    var listEl = document.getElementById('saved-list');
+    if (recs.length === 0) {
+      listEl.innerHTML = '<div class="saved-empty">No saved applicants yet. Run an analysis and click Save to store a result.</div>';
+      return;
+    }
+
+    var html = '<div class="saved-grid">';
+    recs.forEach(function(rec, i) {
+      var col = scoreColor(rec.score);
+      var d = new Date(rec.savedAt);
+      var dateStr = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+      html +=
+        '<div class="saved-card" data-idx="'+i+'">'+
+          '<div class="saved-card-top">'+
+            '<div>'+
+              '<div class="saved-card-name">'+escHtml(rec.name || 'Unnamed')+'</div>'+
+              '<div class="saved-card-date">'+dateStr+'</div>'+
+            '</div>'+
+            '<div class="saved-card-score">'+
+              '<span class="saved-card-score-num" style="color:'+col+'">'+rec.score+'</span>'+
+              '<span class="saved-card-score-denom">/100</span>'+
+            '</div>'+
+          '</div>'+
+          '<span class="risk-pill '+rec.pill+'" style="font-size:10px;padding:3px 10px">'+rec.level+'</span>'+
+          '<div class="saved-card-meta">'+
+            '<span class="saved-card-loan">'+rec.loanType+' · '+'\u20AC'+(rec.amount||0).toLocaleString()+'</span>'+
+            '<div style="display:flex;gap:6px;align-items:center">'+
+              '<button class="load-btn" data-action="load" data-idx="'+i+'">Load</button>'+
+              '<button class="saved-delete" data-action="delete" data-idx="'+i+'" title="Remove">'+
+                '<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">'+
+                  '<path d="M2 3.5h10M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6v4.5M8.5 6v4.5M3 3.5l.75 8a.5.5 0 00.5.5h5.5a.5.5 0 00.5-.5L11 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>'+
+                '</svg>'+
+              '</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+
+
+  }
+
+  // ---- Load a saved record back into the form ----
+  function loadIntoForm(rec) {
+    // Restore name
+    document.getElementById('applicant-name').value = rec.name || '';
+
+    // Restore each slider value AND its display label
+    var fieldMap = [
+      { id:'amount',   outId:'amount-out',   fmt:function(v){ return '\u20AC'+Number(v).toLocaleString(); } },
+      { id:'age',      outId:'age-out',      fmt:function(v){ return String(v); } },
+      { id:'income',   outId:'income-out',   fmt:function(v){ return '\u20AC'+Number(v).toLocaleString(); } },
+      { id:'savings',  outId:'savings-out',  fmt:function(v){ return '\u20AC'+Number(v).toLocaleString(); } },
+      { id:'credit',   outId:'credit-out',   fmt:function(v){ return String(v); } },
+      { id:'dti',      outId:'dti-out',      fmt:function(v){ return v+'%'; } },
+      { id:'emp',      outId:'emp-out',      fmt:function(v){ return v+' yr'+(v==1?'':'s'); } },
+      { id:'defaults', outId:'defaults-out', fmt:function(v){ return String(v); } }
+    ];
+    fieldMap.forEach(function(f) {
+      if (rec[f.id] === undefined || rec[f.id] === null) return;
+      var el = document.getElementById(f.id);
+      var out = document.getElementById(f.outId);
+      el.value = rec[f.id];
+      out.textContent = f.fmt(rec[f.id]);
+    });
+
+    // Restore loan type and update toggle buttons
+    loanType = rec.loanType || 'mortgage';
+    document.querySelectorAll('#loan-toggle .toggle-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-loan') === loanType);
+    });
+
+    // Recompute from restored inputs and render
+    var r = compute();
+    lastResult = r;
+    renderResults(r);
+  }
+
+  // ---- Toast ----
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  // ---- Escape HTML ----
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ---- Analyze ----
+  function analyze() {
+    var r = compute();
+    lastResult = r;
+    renderResults(r);
+  }
+
+  // ---- Save ----
+  function saveResult() {
+    if (!lastResult) { showToast('Run an analysis first.'); return; }
+    var rec = Object.assign({}, lastResult, {
+      savedAt: Date.now(),
+      amount: getVal('amount'),
+      age: getVal('age'),
+      income: getVal('income'),
+      savings: getVal('savings'),
+      credit: getVal('credit'),
+      dti: getVal('dti'),
+      emp: getVal('emp'),
+      defaults: getVal('defaults'),
+      loanType: loanType
+    });
+    var recs = loadRecords();
+    recs.unshift(rec);
+    saveRecords(recs);
+    renderSaved();
+    showToast('Saved: ' + (rec.name || 'Unnamed applicant'));
+  }
+
+  // ---- Wire up buttons ----
+  document.getElementById('analyze-btn').addEventListener('click', analyze);
+  document.getElementById('save-btn').addEventListener('click', saveResult);
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    lastResult = null;
+    renderEmpty();
+  });
+
+  // ---- Saved list delegation (attached once, survives re-renders) ----
+  document.getElementById('saved-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.getAttribute('data-action');
+    var idx = +btn.getAttribute('data-idx');
+    var recs = loadRecords();
+    if (action === 'delete') {
+      recs.splice(idx, 1);
+      saveRecords(recs);
+      renderSaved();
+      showToast('Record removed.');
+    } else if (action === 'load') {
+      var rec = recs[idx];
+      if (!rec) return;
+      loadIntoForm(rec);
+      showToast('Loaded: ' + (rec.name || 'Unnamed'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // ---- Empty state ----
+  function renderEmpty() {
+    document.getElementById('results').innerHTML =
+      '<div class="empty-state">' +
+        '<div class="empty-icon">' +
+          '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<circle cx="20" cy="20" r="19" stroke="var(--border2)" stroke-width="1.5"/>' +
+            '<path d="M10 28l6-8 5 5 7-10 5 6" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '<circle cx="20" cy="13" r="2" fill="var(--text3)" opacity="0.4"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="empty-title">No analysis yet</div>' +
+        '<div class="empty-sub">Fill in the applicant details on the left and click <strong>Run Risk Analysis</strong> to see the result here.</div>' +
+      '</div>';
+  }
+
+  // ---- Init ----
+  renderEmpty();
+  renderSaved();
+})();
+</script>
+
+<script>
+// ---- PWA: Generate app icon via canvas ----
+(function() {
+  var canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  var ctx = canvas.getContext('2d');
+  // Background
+  var grad = ctx.createLinearGradient(0,0,512,512);
+  grad.addColorStop(0,'#4f8ef7');
+  grad.addColorStop(1,'#7c5cfc');
+  ctx.fillStyle = grad;
+  roundRect(ctx,0,0,512,512,80);
+  ctx.fill();
+  // Chart line icon
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 34;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(90,360);
+  ctx.lineTo(175,240);
+  ctx.lineTo(255,300);
+  ctx.lineTo(345,140);
+  ctx.lineTo(422,210);
+  ctx.stroke();
+  // Dot
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath();
+  ctx.arc(255,300,22,0,Math.PI*2);
+  ctx.fill();
+
+  var dataUrl = canvas.toDataURL('image/png');
+  document.getElementById('apple-touch-icon-link').href = dataUrl;
+  document.getElementById('favicon-link').href = dataUrl;
+
+  // Build inline manifest
+  var manifest = {
+    name: 'LoanSight — ML Risk Assessment',
+    short_name: 'LoanSight',
+    description: 'ML-powered loan risk assessment for mortgage and personal loans.',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0b0e14',
+    theme_color: '#0b0e14',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: dataUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+})();
+
+// ---- PWA: Service Worker registration (inline) ----
+(function() {
+  if (!('serviceWorker' in navigator)) return;
+  var swCode = `
+const CACHE = 'loansight-v1';
+const FONTS = [
+  'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap'
+];
+self.addEventListener('install', function(e) {
+  e.waitUntil(
+    caches.open(CACHE).then(function(cache) {
+      return cache.addAll(FONTS).catch(function(){});
+    })
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', function(e) {
+  e.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
+    })
+  );
+  self.clients.claim();
+});
+self.addEventListener('fetch', function(e) {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function(resp) {
+        if (resp && resp.status === 200 && e.request.url.indexOf('fonts') > -1) {
+          var clone = resp.clone();
+          caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
+        }
+        return resp;
+      }).catch(function(){ return cached; });
+    })
+  );
+});
+`;
+  var blob = new Blob([swCode], {type:'text/javascript'});
+  var swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+})();
+
+// ---- PWA: iOS install banner ----
+(function() {
+  // Only show on iOS Safari when not already installed
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isInStandalone = ('standalone' in navigator) && navigator.standalone;
+  var dismissed = localStorage.getItem('pwa_banner_dismissed');
+  if (!isIos || isInStandalone || dismissed) return;
+
+  var banner = document.createElement('div');
+  banner.id = 'pwa-banner';
+  banner.innerHTML =
+    '<div id="pwa-banner-icon">' +
+      '<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M3 14l4-5 3 3 4-6 3 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<circle cx="10" cy="5" r="1.5" fill="white" opacity="0.5"/>' +
+      '</svg>' +
+    '</div>' +
+    '<div id="pwa-banner-text">' +
+      '<div id="pwa-banner-title">Add LoanSight to Home Screen</div>' +
+      '<div id="pwa-banner-sub">Tap <strong style="color:#4f8ef7">↑ Share</strong> then <strong style="color:#4f8ef7">Add to Home Screen</strong></div>' +
+    '</div>' +
+    '<button id="pwa-banner-close" aria-label="Dismiss">×</button>';
+  document.body.appendChild(banner);
+
+  setTimeout(function(){ banner.classList.add('visible'); }, 1500);
+
+  document.getElementById('pwa-banner-close').addEventListener('click', function() {
+    banner.classList.remove('visible');
+    localStorage.setItem('pwa_banner_dismissed', '1');
+  });
+})();
+</script>
+</body>
+</html>
